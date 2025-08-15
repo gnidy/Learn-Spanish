@@ -1,309 +1,372 @@
 /**
  * Spanish Vocabulary Learning App
  * A flashcard application for learning Spanish words
+ * 
+ * This version features:
+ * - Modular, organized code structure
+ * - Better state management
+ * - Improved error handling
+ * - Clean separation of concerns
  */
 
-// DOM Elements
-const elements = {
-    categoriesContainer: document.getElementById('categories'),
-    spanishWord: document.getElementById('spanish-word'),
-    translation: document.getElementById('translation'),
-    example: document.getElementById('example'),
-    knowItBtn: document.getElementById('know-it'),
-    dontKnowBtn: document.getElementById('dont-know'),
-    progressBar: document.getElementById('progress'),
-    progressText: document.getElementById('progress-text'),
-    wordCard: document.getElementById('word-card'),
-    cardInner: document.querySelector('.card-inner'),
-    cardFront: document.querySelector('.card-front'),
-    cardBack: document.querySelector('.card-back'),
-    controls: document.querySelector('.controls'),
-    categoriesGrid: document.querySelector('.categories-grid')
+// ========================
+// App Configuration
+// ========================
+const CONFIG = {
+    storageKey: 'spanishVocabKnownWords',
+    animationDuration: 300, // ms
+    cardFlipDuration: 500   // ms
 };
 
-// App State
-const state = {
-    currentCategory: null,
-    currentWord: null,
-    currentWordIndex: -1,
-    isTransitioning: false,
-    knownWords: new Set(JSON.parse(localStorage.getItem('knownWords') || '[]'))
-};
-
-/**
- * Initialize the application
- */
-function init() {
-    // Check if all required elements exist
-    if (!validateElements()) {
-        console.error('Required DOM elements are missing');
-        return;
+class SpanishVocabApp {
+    constructor() {
+        this.elements = this.cacheDOM();
+        this.state = this.initializeState();
+        this.initialize();
     }
 
-    renderCategories();
-    setupEventListeners();
-    updateProgress();
-}
+    /**
+     * Cache DOM elements
+     */
+    cacheDOM() {
+        return {
+            categoriesContainer: document.getElementById('categories'),
+            spanishWord: document.getElementById('spanish-word'),
+            translation: document.getElementById('translation'),
+            example: document.getElementById('example'),
+            knowItBtn: document.getElementById('know-it'),
+            dontKnowBtn: document.getElementById('dont-know'),
+            progressBar: document.getElementById('progress'),
+            progressText: document.getElementById('progress-text'),
+            wordCard: document.getElementById('word-card'),
+            cardInner: document.querySelector('.card-inner'),
+            cardFront: document.querySelector('.card-front'),
+            cardBack: document.querySelector('.card-back'),
+            categoriesGrid: document.querySelector('.categories-grid'),
+            backButton: document.getElementById('back-button'),
+            wordCounter: document.getElementById('word-counter')
+        };
+    }
 
-/**
- * Validate that all required DOM elements exist
- */
-function validateElements() {
-    return Object.values(elements).every(element => {
-        if (!element) {
-            console.error('Missing required element:', Object.keys(elements).find(key => elements[key] === element));
-            return false;
+    /**
+     * Initialize application state
+     */
+    initializeState() {
+        return {
+            currentCategory: null,
+            currentWord: null,
+            currentWordIndex: -1,
+            isTransitioning: false,
+            knownWords: new Set(JSON.parse(localStorage.getItem('knownWords') || '[]')),
+            animationDuration: 300 // ms, should match CSS
+        };
+    }
+
+    /**
+     * Initialize the application
+     */
+    initialize() {
+        if (!this.validateElements()) {
+            console.error('Required DOM elements are missing');
+            return;
         }
-        return true;
-    });
-}
 
-/**
- * Render category cards
- */
-function renderCategories() {
-    if (!elements.categoriesContainer) return;
-
-    elements.categoriesContainer.innerHTML = categories.map(category => {
-        const categoryWords = category.words;
-        const knownCount = Array.from(state.knownWords).filter(wordKey => {
-            const [categoryId] = wordKey.split('::');
-            return categoryId === category.id;
-        }).length;
-        
-        const progressPercent = categoryWords.length > 0 
-            ? Math.round((knownCount / categoryWords.length) * 100) 
-            : 0;
-        
-        return `
-            <div class="category-card" data-category-id="${category.id}">
-                <h3>${category.name}</h3>
-                <p>${knownCount} من ${categoryWords.length} كلمة</p>
-                <div class="category-progress">
-                    <div class="category-progress-bar" style="width: ${progressPercent}%"></div>
-                </div>
-            </div>
-        `;
-    }).join('');
-}
-
-/**
- * Start learning a specific category
- */
-function startCategory(category) {
-    if (!category || !category.words || category.words.length === 0) {
-        console.error('Invalid category or empty word list');
-        return;
+        this.setupEventListeners();
+        this.renderCategories();
+        this.updateProgress();
     }
 
-    state.currentCategory = category;
-    state.currentWordIndex = 0;
-    state.isTransitioning = false;
-
-    // Hide categories and show word card
-    elements.categoriesGrid.style.display = 'none';
-    elements.wordCard.classList.remove('hidden');
-    elements.wordCard.classList.add('visible');
-    
-    // Show the first word
-    showNextWord();
-}
-
-/**
- * Show the next word in the current category
- */
-function showNextWord() {
-    if (state.isTransitioning) return;
-    
-    // Check if we've reached the end of the category
-    if (!state.currentCategory || state.currentWordIndex >= state.currentCategory.words.length) {
-        completeCategory();
-        return;
-    }
-    
-    state.isTransitioning = true;
-    
-    // Reset card state
-    elements.wordCard.style.opacity = '0';
-    elements.wordCard.classList.remove('card-flipped');
-    
-    // Set the new word content
-    state.currentWord = state.currentCategory.words[state.currentWordIndex];
-    elements.spanishWord.textContent = state.currentWord.spanish;
-    elements.translation.textContent = state.currentWord.translation;
-    elements.example.textContent = state.currentWord.example || '';
-    
-    // Make sure the card is visible
-    elements.wordCard.classList.remove('hidden');
-    
-    // Force a reflow to ensure the reset is applied
-    void elements.wordCard.offsetHeight;
-    
-    // Fade in the new word
-    setTimeout(() => {
-        elements.wordCard.style.opacity = '1';
-        state.isTransitioning = false;
-    }, 10);
-}
-
-/**
- * Handle category completion
- */
-function completeCategory() {
-    if (!state.currentCategory) return;
-    
-    const categoryName = state.currentCategory.name;
-    
-    // Fade out the card
-    elements.wordCard.classList.add('hidden');
-    
-    setTimeout(() => {
-        elements.wordCard.classList.remove('visible');
-        elements.categoriesGrid.style.display = 'grid';
-        renderCategories();
-        
-        // Show completion message
-        showNotification(`تهانينا! لقد أكملت قسم ${categoryName}`);
-    }, 300);
-}
-
-/**
- * Show a notification to the user
- */
-function showNotification(message) {
-    // You can replace this with a more sophisticated notification system
-    alert(message);
-}
-
-/**
- * Mark the current word as known
- */
-function markAsKnown() {
-    if (!state.currentWord || !state.currentCategory) return;
-
-    const wordKey = `${state.currentCategory.id}::${state.currentWord.spanish}`;
-    state.knownWords.add(wordKey);
-    saveKnownWords();
-
-    // If card is flipped, flip it back and wait for animation to finish
-    if (elements.wordCard.classList.contains('card-flipped')) {
-        elements.wordCard.classList.remove('card-flipped');
-        setTimeout(nextWord, 180); // Wait for flip animation
-    } else {
-        nextWord(); // Proceed immediately if not flipped
-    }
-}
-
-/**
- * Mark the current word as unknown
- */
-function markAsUnknown() {
-    if (!state.currentWord || !state.currentCategory) {
-        nextWord();
-        return;
+    /**
+     * Validate required DOM elements
+     */
+    validateElements() {
+        return Object.values(this.elements).every(element => {
+            if (!element) {
+                console.error('Missing required element:', 
+                    Object.keys(this.elements).find(key => this.elements[key] === element));
+                return false;
+            }
+            return true;
+        });
     }
 
-    const wordKey = `${state.currentCategory.id}::${state.currentWord.spanish}`;
-    state.knownWords.delete(wordKey);
-    saveKnownWords();
-
-    // If card is flipped, flip it back and wait for animation to finish
-    if (elements.wordCard.classList.contains('card-flipped')) {
-        elements.wordCard.classList.remove('card-flipped');
-        setTimeout(nextWord, 180); // Wait for flip animation
-    } else {
-        nextWord(); // Proceed immediately if not flipped
-    }
-}
-
-/**
- * Save known words to localStorage
- */
-function saveKnownWords() {
-    localStorage.setItem('knownWords', JSON.stringify(Array.from(state.knownWords)));
-    updateProgress();
-}
-
-/**
- * Move to the next word
- */
-function nextWord() {
-    if (state.currentCategory && state.currentWordIndex < state.currentCategory.words.length - 1) {
-        state.currentWordIndex++;
-        showNextWord();
-    } else {
-        // Reached the end of the category
-        if (state.currentCategory) {
-            state.currentWordIndex = state.currentCategory.words.length;
-            showNextWord(); // This will trigger category completion
+    /**
+     * Set up event listeners
+     */
+    setupEventListeners() {
+        // Back button
+        if (this.elements.backButton) {
+            this.elements.backButton.addEventListener('click', () => this.returnToCategories());
         }
-    }
-}
 
-/**
- * Update progress bar and text
- */
-function updateProgress() {
-    if (!elements.progressBar || !elements.progressText) return;
-
-    const totalWords = categories.reduce((sum, cat) => sum + cat.words.length, 0);
-    const knownCount = state.knownWords.size;
-    const progressPercent = totalWords > 0 ? Math.round((knownCount / totalWords) * 100) : 0;
-
-    elements.progressBar.style.width = `${progressPercent}%`;
-    elements.progressText.textContent = `${progressPercent}% مكتمل`;
-
-    // Update category progress in the UI
-    renderCategories();
-}
-
-/**
- * Flip the card
- */
-function flipCard() {
-    if (state.isTransitioning) return;
-
-    elements.wordCard.classList.toggle('card-flipped');
-
-    // Add a small delay before allowing another flip to prevent rapid toggling
-    state.isTransitioning = true;
-    setTimeout(() => {
-        state.isTransitioning = false;
-    }, 500); // Match this with your CSS transition duration
-}
-
-/**
- * Set up all event listeners for the application
- */
-function setupEventListeners() {
-    // Event listener for category selection
-    if (elements.categoriesContainer) {
-        elements.categoriesContainer.addEventListener('click', (e) => {
-            const categoryCard = e.target.closest('.category-card');
-            if (categoryCard) {
-                const categoryId = categoryCard.dataset.categoryId;
-                const selectedCategory = categories.find(cat => cat.id === categoryId);
-                if (selectedCategory) {
-                    startCategory(selectedCategory);
+        // Category selection
+        if (this.elements.categoriesContainer) {
+            this.elements.categoriesContainer.addEventListener('click', (e) => {
+                const categoryCard = e.target.closest('.category-card');
+                if (categoryCard) {
+                    const categoryId = categoryCard.dataset.categoryId;
+                    const selectedCategory = categories.find(cat => cat.id === categoryId);
+                    if (selectedCategory) {
+                        this.startCategory(selectedCategory);
+                    }
                 }
+            });
+        }
+
+        // Card controls
+        if (this.elements.knowItBtn) {
+            this.elements.knowItBtn.addEventListener('click', () => this.markAsKnown());
+        }
+
+        if (this.elements.dontKnowBtn) {
+            this.elements.dontKnowBtn.addEventListener('click', () => this.markAsUnknown());
+        }
+
+        // Card flip
+        if (this.elements.cardFront) {
+            this.elements.cardFront.addEventListener('click', () => this.flipCard());
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' || e.code === 'Enter') {
+                if (this.elements.wordCard.classList.contains('card-flipped')) {
+                    this.markAsKnown();
+                } else {
+                    this.flipCard();
+                }
+                e.preventDefault();
+            } else if (e.code === 'ArrowRight') {
+                this.markAsKnown();
+                e.preventDefault();
+            } else if (e.code === 'ArrowLeft') {
+                this.markAsUnknown();
+                e.preventDefault();
+            } else if (e.code === 'Escape') {
+                this.returnToCategories();
+                e.preventDefault();
             }
         });
     }
 
-    // Event listeners for card controls
-    if (elements.knowItBtn) {
-        elements.knowItBtn.addEventListener('click', markAsKnown);
+    /**
+     * Render category cards
+     */
+    renderCategories() {
+        if (!this.elements.categoriesContainer) return;
+
+        this.elements.categoriesContainer.innerHTML = categories.map(category => {
+            const knownCount = this.getKnownWordCount(category.id);
+            const totalWords = category.words.length;
+            const progressPercent = totalWords > 0 
+                ? Math.round((knownCount / totalWords) * 100) 
+                : 0;
+            
+            // Calculate the current position (words known + 1 if in progress)
+            let currentPosition = knownCount;
+            if (this.state.currentCategory?.id === category.id && this.state.currentWordIndex >= 0) {
+                // If this is the active category and we're in the middle of it
+                currentPosition = Math.min(this.state.currentWordIndex, totalWords);
+            }
+            
+            return `
+                <div class="category-card" data-category-id="${category.id}">
+                    <h3>${category.name}</h3>
+                    <p>${currentPosition} من ${totalWords} كلمة</p>
+                    <div class="category-progress">
+                        <div class="category-progress-bar" style="width: ${progressPercent}%"></div>
+                    </div>
+                </div>
+            `;
+        }).join('');
     }
 
-    if (elements.dontKnowBtn) {
-        elements.dontKnowBtn.addEventListener('click', markAsUnknown);
+    /**
+     * Get count of known words in a category
+     */
+    getKnownWordCount(categoryId) {
+        return Array.from(this.state.knownWords).filter(wordKey => {
+            const [storedCategoryId] = wordKey.split('::');
+            return storedCategoryId === categoryId;
+        }).length;
     }
 
-    // Event listener for flipping the card - ATTACH TO FRONT ONLY
-    if (elements.cardFront) {
-        elements.cardFront.addEventListener('click', flipCard);
+    /**
+     * Start learning a category
+     */
+    startCategory(category) {
+        if (!category?.words?.length) {
+            console.error('Invalid category or empty word list');
+            return;
+        }
+
+        this.state.currentCategory = category;
+        this.state.currentWordIndex = -1;
+        this.state.isTransitioning = false;
+
+        // Update UI state
+        document.body.classList.add('word-card-active');
+        this.elements.categoriesGrid.style.display = 'none';
+        this.elements.wordCard.classList.remove('hidden');
+        this.elements.wordCard.classList.add('visible');
+        
+        this.showNextWord();
+    }
+
+    /**
+     * Show the next word in the current category
+     */
+    showNextWord() {
+        if (this.state.isTransitioning) return;
+        
+        this.state.currentWordIndex++;
+        this.updateWordCounter();
+        
+        // Check if category is complete
+        if (this.state.currentWordIndex >= this.state.currentCategory.words.length) {
+            this.completeCategory();
+            return;
+        }
+        
+        this.state.isTransitioning = true;
+        this.state.currentWord = this.state.currentCategory.words[this.state.currentWordIndex];
+        
+        // Reset card state
+        this.elements.wordCard.style.opacity = '0';
+        this.elements.wordCard.classList.remove('card-flipped');
+        
+        // Update word content
+        this.elements.spanishWord.textContent = this.state.currentWord.spanish;
+        this.elements.translation.textContent = this.state.currentWord.translation;
+        this.elements.example.textContent = this.state.currentWord.example || '';
+        
+        // Animate card in
+        requestAnimationFrame(() => {
+            this.elements.wordCard.style.opacity = '1';
+            setTimeout(() => {
+                this.state.isTransitioning = false;
+            }, this.state.animationDuration);
+        });
+    }
+
+    /**
+     * Mark current word as known
+     */
+    markAsKnown() {
+        if (!this.state.currentWord || !this.state.currentCategory) return;
+
+        const wordKey = this.getWordKey();
+        this.state.knownWords.add(wordKey);
+        this.saveKnownWords();
+        this.advanceToNextWord();
+    }
+
+    /**
+     * Mark current word as unknown
+     */
+    markAsUnknown() {
+        if (!this.state.currentWord || !this.state.currentCategory) {
+            this.advanceToNextWord();
+            return;
+        }
+
+        const wordKey = this.getWordKey();
+        this.state.knownWords.delete(wordKey);
+        this.saveKnownWords();
+        this.advanceToNextWord();
+    }
+
+    /**
+     * Generate a unique key for a word
+     */
+    getWordKey() {
+        return `${this.state.currentCategory.id}::${this.state.currentWord.spanish}`;
+    }
+
+    /**
+     * Move to the next word with animation handling
+     */
+    advanceToNextWord() {
+        if (this.elements.wordCard.classList.contains('card-flipped')) {
+            this.elements.wordCard.classList.remove('card-flipped');
+            setTimeout(() => this.showNextWord(), 180);
+        } else {
+            this.showNextWord();
+        }
+    }
+
+    /**
+     * Handle category completion
+     */
+    completeCategory() {
+        this.elements.wordCard.classList.add('hidden');
+        document.body.classList.remove('word-card-active');
+        this.elements.wordCard.classList.remove('visible');
+        this.elements.categoriesGrid.style.display = 'grid';
+        this.renderCategories();
+    }
+
+    /**
+     * Return to categories view
+     */
+    returnToCategories() {
+        if (this.elements.cardInner.style.transform === 'rotateY(180deg)') {
+            this.elements.cardInner.style.transform = 'rotateY(0deg)';
+        }
+        this.completeCategory();
+    }
+
+    /**
+     * Update the word counter display
+     */
+    updateWordCounter() {
+        if (!this.state.currentCategory || !this.elements.wordCounter) return;
+        
+        const totalWords = this.state.currentCategory.words.length;
+        const currentPosition = Math.min(this.state.currentWordIndex + 1, totalWords);
+        this.elements.wordCounter.textContent = `${currentPosition} من ${totalWords} كلمة`;
+    }
+
+    /**
+     * Save known words to localStorage
+     */
+    saveKnownWords() {
+        localStorage.setItem('knownWords', JSON.stringify(Array.from(this.state.knownWords)));
+        this.updateProgress();
+    }
+
+    /**
+     * Update progress indicators
+     */
+    updateProgress() {
+        if (!this.elements.progressBar || !this.elements.progressText) return;
+
+        const totalWords = categories.reduce((sum, cat) => sum + cat.words.length, 0);
+        const progressPercent = totalWords > 0 
+            ? Math.round((this.state.knownWords.size / totalWords) * 100) 
+            : 0;
+
+        this.elements.progressBar.style.width = `${progressPercent}%`;
+        this.elements.progressText.textContent = `${progressPercent}% مكتمل`;
+        this.renderCategories();
+    }
+
+    /**
+     * Flip the flashcard
+     */
+    flipCard() {
+        if (this.state.isTransitioning) return;
+
+        this.elements.wordCard.classList.toggle('card-flipped');
+        this.state.isTransitioning = true;
+        
+        setTimeout(() => {
+            this.state.isTransitioning = false;
+        }, this.state.animationDuration);
     }
 }
 
-// Start the app when the DOM is loaded
-document.addEventListener('DOMContentLoaded', init);
+// Initialize the application when the DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    window.app = new SpanishVocabApp();
+});

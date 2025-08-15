@@ -280,3 +280,149 @@ header h1 {
 .pulse {
     animation: pulse 0.5s ease;
 }
+
+body.word-card-active header {
+    display: none;
+}
+
+body.word-card-active {
+    overflow: hidden; /* Prevent scrolling */
+    min-height: 100vh;
+}
+
+body.word-card-active main.container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+    max-width: 100%;
+    margin: 0 auto;
+}
+
+/* Improved card styles for full-screen mode */
+body.word-card-active .word-card {
+    margin: 0;
+    width: 100%;
+    max-width: 600px;
+    height: 400px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+body.word-card-active .card-front,
+body.word-card-active .card-back {
+    padding: 2rem;
+    border-radius: 15px;
+}
+
+body.word-card-active .word-display h2 {
+    font-size: 2.5rem;
+    margin-bottom: 1.5rem;
+}
+
+body.word-card-active .word-display p {
+    font-size: 1.8rem;
+    margin-bottom: 2rem;
+}
+
+body.word-card-active .hint {
+    font-size: 1.1rem;
+    margin-top: 1.5rem;
+}
+
+/* Word Card Header */
+.word-card-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    z-index: 900;
+    pointer-events: none; /* Allow clicks to pass through to elements below */
+}
+
+.word-card-header > * {
+    pointer-events: auto; /* Re-enable pointer events for child elements */
+}
+
+.word-counter {
+    background-color: rgba(255, 255, 255, 0.9);
+    color: #2c3e50;
+    padding: 8px 15px;
+    border-radius: 20px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: all 0.3s ease;
+}
+
+body.word-card-active .word-counter {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Back Button Styles */
+.back-button {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    height: 44px;
+    padding: 0 20px 0 40px;
+    border-radius: 25px;
+    background-color: #2c3e50;
+    color: white;
+    border: none;
+    font-size: 1.1rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    opacity: 0;
+    transform: translateX(-20px);
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    overflow: hidden;
+}
+
+.back-button .back-arrow {
+    position: absolute;
+    left: 15px;
+    width: 12px;
+    height: 12px;
+    border-top: 3px solid white;
+    border-right: 3px solid white;
+    transform: rotate(-135deg);
+    transition: all 0.3s ease;
+}
+
+.back-button .back-text {
+    margin-right: 8px;
+    transition: transform 0.3s ease;
+}
+
+body.word-card-active .back-button {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.back-button:hover {
+    background-color: #34495e;
+    transform: translateX(0) scale(1.02);
+}
+
+.back-button:hover .back-arrow {
+    left: 13px;
+}
+
+.back-button:active {
+    transform: translateX(0) scale(0.98);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
