@@ -1,192 +1,296 @@
+/**
+ * Spanish Vocabulary Learning App
+ * A flashcard application for learning Spanish words
+ */
+
 // DOM Elements
-const categoriesContainer = document.getElementById('categories');
-const spanishWordElement = document.getElementById('spanish-word');
-const translationElement = document.getElementById('translation');
-const exampleElement = document.getElementById('example');
-const knowItBtn = document.getElementById('know-it');
-const dontKnowBtn = document.getElementById('dont-know');
-const progressBar = document.getElementById('progress');
-const progressText = document.getElementById('progress-text');
+const elements = {
+    categoriesContainer: document.getElementById('categories'),
+    spanishWord: document.getElementById('spanish-word'),
+    translation: document.getElementById('translation'),
+    example: document.getElementById('example'),
+    knowItBtn: document.getElementById('know-it'),
+    dontKnowBtn: document.getElementById('dont-know'),
+    progressBar: document.getElementById('progress'),
+    progressText: document.getElementById('progress-text'),
+    wordCard: document.getElementById('word-card'),
+    cardInner: document.querySelector('.card-inner'),
+    cardFront: document.querySelector('.card-front'),
+    cardBack: document.querySelector('.card-back'),
+    controls: document.querySelector('.controls'),
+    categoriesGrid: document.querySelector('.categories-grid')
+};
 
 // App State
-let currentCategory = null;
-let currentWord = null;
-let knownWords = JSON.parse(localStorage.getItem('knownWords')) || [];
-let currentWordIndex = 0;
+const state = {
+    currentCategory: null,
+    currentWord: null,
+    currentWordIndex: -1,
+    isTransitioning: false,
+    knownWords: new Set(JSON.parse(localStorage.getItem('knownWords') || '[]'))
+};
 
-// Initialize the app
+/**
+ * Initialize the application
+ */
 function init() {
+    // Check if all required elements exist
+    if (!validateElements()) {
+        console.error('Required DOM elements are missing');
+        return;
+    }
+
     renderCategories();
     setupEventListeners();
     updateProgress();
 }
 
-// Render category cards
-function renderCategories() {
-    categoriesContainer.innerHTML = '';
-    
-    categories.forEach(category => {
-        const categoryWords = category.words;
-        const knownCount = categoryWords.filter(word => 
-            knownWords.includes(`${category.id}-${word.spanish}`)
-        ).length;
-        
-        const progressPercent = (knownCount / categoryWords.length) * 100;
-        
-        const categoryCard = document.createElement('div');
-        categoryCard.className = 'category-card';
-        categoryCard.innerHTML = `
-            <h3>${category.name}</h3>
-            <p>${knownCount} من ${categoryWords.length} كلمة</p>
-            <div class="category-progress">
-                <div class="category-progress-bar" style="width: ${progressPercent}%"></div>
-            </div>
-        `;
-        
-        categoryCard.addEventListener('click', () => startCategory(category));
-        categoriesContainer.appendChild(categoryCard);
+/**
+ * Validate that all required DOM elements exist
+ */
+function validateElements() {
+    return Object.values(elements).every(element => {
+        if (!element) {
+            console.error('Missing required element:', Object.keys(elements).find(key => elements[key] === element));
+            return false;
+        }
+        return true;
     });
 }
 
-// Start learning a specific category
+/**
+ * Render category cards
+ */
+function renderCategories() {
+    if (!elements.categoriesContainer) return;
+
+    elements.categoriesContainer.innerHTML = categories.map(category => {
+        const categoryWords = category.words;
+        const knownCount = Array.from(state.knownWords).filter(wordKey => {
+            const [categoryId] = wordKey.split('::');
+            return categoryId === category.id;
+        }).length;
+        
+        const progressPercent = categoryWords.length > 0 
+            ? Math.round((knownCount / categoryWords.length) * 100) 
+            : 0;
+        
+        return `
+            <div class="category-card" data-category-id="${category.id}">
+                <h3>${category.name}</h3>
+                <p>${knownCount} من ${categoryWords.length} كلمة</p>
+                <div class="category-progress">
+                    <div class="category-progress-bar" style="width: ${progressPercent}%"></div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+/**
+ * Start learning a specific category
+ */
 function startCategory(category) {
-    currentCategory = category;
-    currentWordIndex = 0;
-    const categoriesGrid = document.querySelector('.categories-grid');
-    const wordCard = document.querySelector('.word-card');
-    
+    if (!category || !category.words || category.words.length === 0) {
+        console.error('Invalid category or empty word list');
+        return;
+    }
+
+    state.currentCategory = category;
+    state.currentWordIndex = 0;
+    state.isTransitioning = false;
+
     // Hide categories and show word card
-    categoriesGrid.style.display = 'none';
-    wordCard.classList.remove('hidden');
-    wordCard.classList.add('visible');
+    elements.categoriesGrid.style.display = 'none';
+    elements.wordCard.classList.remove('hidden');
+    elements.wordCard.classList.add('visible');
     
     // Show the first word
     showNextWord();
 }
 
-// Show the next word in the current category
+/**
+ * Show the next word in the current category
+ */
 function showNextWord() {
-    const wordCard = document.querySelector('.word-card');
-    const categoriesGrid = document.querySelector('.categories-grid');
-    
-    // Reset card state - hide translation and buttons
-    translationElement.style.visibility = 'hidden';
-    exampleElement.style.visibility = 'hidden';
-    knowItBtn.style.display = 'none';
-    dontKnowBtn.style.display = 'none';
+    if (state.isTransitioning) return;
     
     // Check if we've reached the end of the category
-    if (currentWordIndex >= currentCategory.words.length) {
-        const categoryName = currentCategory.name;
-        // Fade out the card
-        wordCard.classList.add('hidden');
-        
-        setTimeout(() => {
-            wordCard.classList.remove('visible');
-            categoriesGrid.style.display = 'grid';
-            renderCategories();
-            // Show completion message after UI updates
-            setTimeout(() => {
-                alert(`تهانينا! لقد أكملت قسم ${categoryName}`);
-            }, 50);
-        }, 300); // Match CSS transition duration
+    if (!state.currentCategory || state.currentWordIndex >= state.currentCategory.words.length) {
+        completeCategory();
         return;
     }
     
+    state.isTransitioning = true;
+    
+    // Reset card state
+    elements.wordCard.style.opacity = '0';
+    elements.wordCard.classList.remove('card-flipped');
+    
     // Set the new word content
-    currentWord = currentCategory.words[currentWordIndex];
-    spanishWordElement.textContent = currentWord.spanish;
-    translationElement.textContent = currentWord.translation;
-    exampleElement.textContent = currentWord.example || '';
+    state.currentWord = state.currentCategory.words[state.currentWordIndex];
+    elements.spanishWord.textContent = state.currentWord.spanish;
+    elements.translation.textContent = state.currentWord.translation;
+    elements.example.textContent = state.currentWord.example || '';
     
-    // Show the card with fade-in animation
-    wordCard.style.display = 'block';
-    // Force reflow to ensure the initial state is applied
-    void wordCard.offsetWidth;
-    wordCard.classList.add('visible');
+    // Make sure the card is visible
+    elements.wordCard.classList.remove('hidden');
     
-    // Clear any existing click handlers and add new one
-    wordCard.onclick = null;
-    wordCard.onclick = function() {
-        if (translationElement.style.visibility === 'visible') {
-            // Hide translation and buttons
-            translationElement.style.visibility = 'hidden';
-            exampleElement.style.visibility = 'hidden';
-            knowItBtn.style.display = 'none';
-            dontKnowBtn.style.display = 'none';
-        } else {
-            // Show translation and buttons
-            translationElement.style.visibility = 'visible';
-            exampleElement.style.visibility = 'visible';
-            knowItBtn.style.display = 'inline-block';
-            dontKnowBtn.style.display = 'inline-block';
-        }
-    };
+    // Force a reflow to ensure the reset is applied
+    void elements.wordCard.offsetHeight;
+    
+    // Fade in the new word
+    setTimeout(() => {
+        elements.wordCard.style.opacity = '1';
+        state.isTransitioning = false;
+    }, 10);
 }
 
-// Mark the current word as known
+/**
+ * Handle category completion
+ */
+function completeCategory() {
+    if (!state.currentCategory) return;
+    
+    const categoryName = state.currentCategory.name;
+    
+    // Fade out the card
+    elements.wordCard.classList.add('hidden');
+    
+    setTimeout(() => {
+        elements.wordCard.classList.remove('visible');
+        elements.categoriesGrid.style.display = 'grid';
+        renderCategories();
+        
+        // Show completion message
+        showNotification(`تهانينا! لقد أكملت قسم ${categoryName}`);
+    }, 300);
+}
+
+/**
+ * Show a notification to the user
+ */
+function showNotification(message) {
+    // You can replace this with a more sophisticated notification system
+    alert(message);
+}
+
+/**
+ * Mark the current word as known
+ */
 function markAsKnown() {
-    const wordId = `${currentCategory.id}-${currentWord.spanish}`;
-    if (!knownWords.includes(wordId)) {
-        knownWords.push(wordId);
-        localStorage.setItem('knownWords', JSON.stringify(knownWords));
-    }
+    if (!state.currentWord || !state.currentCategory) return;
+    
+    const wordKey = `${state.currentCategory.id}::${state.currentWord.spanish}`;
+    state.knownWords.add(wordKey);
+    saveKnownWords();
+    
     nextWord();
 }
 
-// Mark the current word as unknown
+/**
+ * Mark the current word as unknown
+ */
 function markAsUnknown() {
+    if (!state.currentWord || !state.currentCategory) {
+        nextWord();
+        return;
+    }
+    
+    const wordKey = `${state.currentCategory.id}::${state.currentWord.spanish}`;
+    state.knownWords.delete(wordKey);
+    saveKnownWords();
+    
     nextWord();
 }
 
-// Move to the next word
-function nextWord() {
-    currentWordIndex++;
+/**
+ * Save known words to localStorage
+ */
+function saveKnownWords() {
+    localStorage.setItem('knownWords', JSON.stringify(Array.from(state.knownWords)));
     updateProgress();
-    showNextWord();
 }
 
-// Update progress bar and text
+/**
+ * Move to the next word
+ */
+function nextWord() {
+    if (state.currentCategory && state.currentWordIndex < state.currentCategory.words.length - 1) {
+        state.currentWordIndex++;
+        showNextWord();
+    } else {
+        // Reached the end of the category
+        if (state.currentCategory) {
+            state.currentWordIndex = state.currentCategory.words.length;
+            showNextWord(); // This will trigger category completion
+        }
+    }
+}
+
+/**
+ * Update progress bar and text
+ */
 function updateProgress() {
+    if (!elements.progressBar || !elements.progressText) return;
+
     const totalWords = categories.reduce((sum, cat) => sum + cat.words.length, 0);
-    const knownCount = knownWords.length;
-    const progressPercent = Math.round((knownCount / totalWords) * 100);
-    
-    progressBar.style.width = `${progressPercent}%`;
-    progressText.textContent = `${progressPercent}% مكتمل`;
-    
+    const knownCount = state.knownWords.size;
+    const progressPercent = totalWords > 0 ? Math.round((knownCount / totalWords) * 100) : 0;
+
+    elements.progressBar.style.width = `${progressPercent}%`;
+    elements.progressText.textContent = `${progressPercent}% مكتمل`;
+
     // Update category progress in the UI
     renderCategories();
 }
 
-// Set up event listeners
+/**
+ * Flip the card
+ */
+function flipCard() {
+    if (state.isTransitioning) return;
+
+    elements.wordCard.classList.toggle('card-flipped');
+
+    // Add a small delay before allowing another flip to prevent rapid toggling
+    state.isTransitioning = true;
+    setTimeout(() => {
+        state.isTransitioning = false;
+    }, 500); // Match this with your CSS transition duration
+}
+
+/**
+ * Set up all event listeners for the application
+ */
 function setupEventListeners() {
-    knowItBtn.addEventListener('click', markAsKnown);
-    dontKnowBtn.addEventListener('click', markAsUnknown);
-    
-    // Keyboard navigation
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'ArrowRight') {
-            if (knowItBtn.style.display !== 'none') {
-                markAsKnown();
-            } else {
-                // Show translation if hidden
-                const event = new Event('click');
-                spanishWordElement.dispatchEvent(event);
+    // Event listener for category selection
+    if (elements.categoriesContainer) {
+        elements.categoriesContainer.addEventListener('click', (e) => {
+            const categoryCard = e.target.closest('.category-card');
+            if (categoryCard) {
+                const categoryId = categoryCard.dataset.categoryId;
+                const selectedCategory = categories.find(cat => cat.id === categoryId);
+                if (selectedCategory) {
+                    startCategory(selectedCategory);
+                }
             }
-        } else if (e.key === 'ArrowLeft') {
-            if (knowItBtn.style.display !== 'none') {
-                markAsUnknown();
-            } else {
-                // Show translation if hidden
-                const event = new Event('click');
-                spanishWordElement.dispatchEvent(event);
-            }
-        } else if ((e.key === ' ' || e.key === 'Enter') && knowItBtn.style.display !== 'none') {
-            markAsKnown();
-            e.preventDefault();
-        }
-    });
+        });
+    }
+
+    // Event listeners for card controls
+    if (elements.knowItBtn) {
+        elements.knowItBtn.addEventListener('click', markAsKnown);
+    }
+
+    if (elements.dontKnowBtn) {
+        elements.dontKnowBtn.addEventListener('click', markAsUnknown);
+    }
+
+    // Event listener for flipping the card - ATTACH TO FRONT ONLY
+    if (elements.cardFront) {
+        elements.cardFront.addEventListener('click', flipCard);
+    }
 }
 
 // Start the app when the DOM is loaded
