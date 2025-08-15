@@ -5,11 +5,11 @@ const categories = [
         name: 'الضمائر',
         words: [
             { spanish: 'yo', translation: 'أنا', example: 'Yo soy estudiante' },
-            // { spanish: 'tú', translation: 'أنت', example: '¿Tú cómo estás?' },
-            // { spanish: 'él', translation: 'هو', example: 'Él es mi amigo' },
-            // { spanish: 'ella', translation: 'هي', example: 'Ella es profesora' },
-            // { spanish: 'nosotros/nosotras', translation: 'نحن', example: 'Nosotros somos estudiantes' },
-            // { spanish: 'vosotros/vosotras', translation: 'أنتم', example: '¿Vosotros sois hermanos?' },
+            { spanish: 'tú', translation: 'أنت', example: '¿Tú cómo estás?' },
+            { spanish: 'él', translation: 'هو', example: 'Él es mi amigo' },
+            { spanish: 'ella', translation: 'هي', example: 'Ella es profesora' },
+            { spanish: 'nosotros/nosotras', translation: 'نحن', example: 'Nosotros somos estudiantes' },
+            { spanish: 'vosotros/vosotras', translation: 'أنتم', example: '¿Vosotros sois hermanos?' },
             { spanish: 'ellos/ellas', translation: 'هم/هن', example: 'Ellos son de España' }
         ]
     },

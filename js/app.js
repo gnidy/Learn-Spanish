@@ -52,13 +52,23 @@ class SpanishVocabApp {
      * Initialize application state
      */
     initializeState() {
+        const savedData = JSON.parse(localStorage.getItem('knownWords') || '{}');
+        const knownWords = new Set(savedData.words || []);
+        const knownWordsTimestamps = savedData.timestamps || {};
+        const wordScores = savedData.wordScores || {}; // Track how well user knows each word
+        
         return {
             currentCategory: null,
             currentWord: null,
             currentWordIndex: -1,
             isTransitioning: false,
-            knownWords: new Set(JSON.parse(localStorage.getItem('knownWords') || '[]')),
-            animationDuration: 300 // ms, should match CSS
+            knownWords,
+            knownWordsTimestamps,
+            wordScores, // Track scores for spaced repetition
+            animationDuration: 300, // ms, should match CSS
+            COOLDOWN_DAYS: 2, // Base cooldown for known words
+            REVIEW_THRESHOLD: 3, // Number of successful recalls before word is considered known
+            currentSessionWords: [] // Track words shown in current session
         };
     }
 
@@ -157,22 +167,14 @@ class SpanishVocabApp {
 
         this.elements.categoriesContainer.innerHTML = categories.map(category => {
             const knownCount = this.getKnownWordCount(category.id);
-            const totalWords = category.words.length;
-            const progressPercent = totalWords > 0 
-                ? Math.round((knownCount / totalWords) * 100) 
+            const progressPercent = category.words.length > 0 
+                ? Math.round((knownCount / category.words.length) * 100) 
                 : 0;
-            
-            // Calculate the current position (words known + 1 if in progress)
-            let currentPosition = knownCount;
-            if (this.state.currentCategory?.id === category.id && this.state.currentWordIndex >= 0) {
-                // If this is the active category and we're in the middle of it
-                currentPosition = Math.min(this.state.currentWordIndex, totalWords);
-            }
             
             return `
                 <div class="category-card" data-category-id="${category.id}">
                     <h3>${category.name}</h3>
-                    <p>${currentPosition} من ${totalWords} كلمة</p>
+                    <p>${knownCount} من ${category.words.length} كلمة</p>
                     <div class="category-progress">
                         <div class="category-progress-bar" style="width: ${progressPercent}%"></div>
                     </div>
@@ -203,6 +205,42 @@ class SpanishVocabApp {
         this.state.currentCategory = category;
         this.state.currentWordIndex = -1;
         this.state.isTransitioning = false;
+        this.state.currentSessionWords = [];
+
+        const now = Date.now();
+        const wordsWithScores = [];
+        
+        // Calculate scores for each word in the category
+        category.words.forEach(word => {
+            const wordKey = `${category.id}::${word.spanish}`;
+            const isKnown = this.state.knownWords.has(wordKey);
+            const lastSeen = this.state.knownWordsTimestamps[wordKey] || 0;
+            const score = this.state.wordScores[wordKey] || 0;
+            const cooldownTime = isKnown ? 
+                this.state.COOLDOWN_DAYS * 24 * 60 * 60 * 1000 : 0;
+            
+            // Calculate word priority (lower is more important)
+            let priority = 0;
+            // Words not seen yet have highest priority
+            if (lastSeen === 0) priority = 0;
+            // Then words with lower scores (more difficult)
+            else priority = 1 + (1 / (score + 1));
+            // Then words that haven't been seen in a while
+            priority += (now - lastSeen) / (1000 * 60 * 60 * 24); // Convert to days
+
+            wordsWithScores.push({
+                ...word,
+                key: wordKey,
+                priority,
+                isKnown,
+                lastSeen,
+                cooldownTime,
+                score
+            });
+        });
+
+        // Sort words by priority (ascending)
+        wordsWithScores.sort((a, b) => a.priority - b.priority);
 
         // Update UI state
         document.body.classList.add('word-card-active');
@@ -210,6 +248,8 @@ class SpanishVocabApp {
         this.elements.wordCard.classList.remove('hidden');
         this.elements.wordCard.classList.add('visible');
         
+        // Start with the sorted words
+        this.state.availableWords = wordsWithScores;
         this.showNextWord();
     }
 
@@ -222,14 +262,14 @@ class SpanishVocabApp {
         this.state.currentWordIndex++;
         this.updateWordCounter();
         
-        // Check if category is complete
-        if (this.state.currentWordIndex >= this.state.currentCategory.words.length) {
+        // Check if we've gone through all available words
+        if (this.state.currentWordIndex >= this.state.availableWords.length) {
             this.completeCategory();
             return;
         }
         
         this.state.isTransitioning = true;
-        this.state.currentWord = this.state.currentCategory.words[this.state.currentWordIndex];
+        this.state.currentWord = this.state.availableWords[this.state.currentWordIndex];
         
         // Reset card state
         this.elements.wordCard.style.opacity = '0';
@@ -256,9 +296,47 @@ class SpanishVocabApp {
         if (!this.state.currentWord || !this.state.currentCategory) return;
 
         const wordKey = this.getWordKey();
-        this.state.knownWords.add(wordKey);
+        
+        // Update word score (increment by 1, max of REVIEW_THRESHOLD)
+        this.state.wordScores[wordKey] = Math.min(
+            (this.state.wordScores[wordKey] || 0) + 1,
+            this.state.REVIEW_THRESHOLD
+        );
+
+        // If word is consistently known, add to known words
+        if (this.state.wordScores[wordKey] >= this.state.REVIEW_THRESHOLD) {
+            this.state.knownWords.add(wordKey);
+            
+            // Set cooldown based on how well the word is known
+            const now = new Date();
+            const cooldownDays = this.calculateCooldownDays(wordKey);
+            now.setDate(now.getDate() + cooldownDays);
+            this.state.knownWordsTimestamps[wordKey] = now.getTime();
+        }
+        
         this.saveKnownWords();
         this.advanceToNextWord();
+    }
+
+    /**
+     * Calculate cooldown days based on word's score and history
+     */
+    calculateCooldownDays(wordKey) {
+        const score = this.state.wordScores[wordKey] || 0;
+        const lastSeen = this.state.knownWordsTimestamps[wordKey] || 0;
+        const now = Date.now();
+        
+        // If word was recently seen, increase cooldown
+        if (lastSeen > 0) {
+            const daysSinceLastSeen = (now - lastSeen) / (1000 * 60 * 60 * 24);
+            return Math.min(
+                Math.ceil(daysSinceLastSeen * 1.5), // Increase cooldown by 50%
+                this.state.COOLDOWN_DAYS * 2 // But not more than double the base cooldown
+            );
+        }
+        
+        // For new words, use base cooldown
+        return this.state.COOLDOWN_DAYS;
     }
 
     /**
@@ -271,7 +349,27 @@ class SpanishVocabApp {
         }
 
         const wordKey = this.getWordKey();
+        
+        // Decrease score but don't go below 0
+        this.state.wordScores[wordKey] = Math.max(
+            (this.state.wordScores[wordKey] || 1) - 2, // Penalize more for not knowing
+            0
+        );
+        
+        // Remove from known words if it was there
         this.state.knownWords.delete(wordKey);
+        
+        // Move word to the front of the queue to review it again soon
+        const currentWord = this.state.availableWords[this.state.currentWordIndex];
+        if (currentWord) {
+            // Insert the current word 3 positions ahead for quick review
+            const insertAt = Math.min(
+                this.state.currentWordIndex + 3,
+                this.state.availableWords.length - 1
+            );
+            this.state.availableWords.splice(insertAt, 0, currentWord);
+        }
+        
         this.saveKnownWords();
         this.advanceToNextWord();
     }
@@ -331,7 +429,11 @@ class SpanishVocabApp {
      * Save known words to localStorage
      */
     saveKnownWords() {
-        localStorage.setItem('knownWords', JSON.stringify(Array.from(this.state.knownWords)));
+        localStorage.setItem('knownWords', JSON.stringify({
+            words: Array.from(this.state.knownWords),
+            timestamps: this.state.knownWordsTimestamps,
+            wordScores: this.state.wordScores
+        }));
         this.updateProgress();
     }
 
