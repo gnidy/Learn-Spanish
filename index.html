@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تعلم الإسبانية - 1000 كلمة شائعة</title>
+    <title>تعلم الإسبانية</title>
     <link rel="stylesheet" href="css/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
 </head>
@@ -36,12 +36,28 @@
     <div class="word-card" id="word-card">
             <div class="card-inner">
                 <div class="card-front">
-                    <h2 id="spanish-word">¡Hola!</h2>
+                    <div class="word-container">
+                        <h2 id="spanish-word">¡Hola!</h2>
+                        <button id="speak-button" class="speak-button" aria-label="نطق الكلمة">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                                <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                            </svg>
+                        </button>
+                    </div>
                     <p class="hint">اضغط على البطاقة للاطلاع على الترجمة</p>
                 </div>
                 <div class="card-back">
                     <h2 id="translation">مرحباً</h2>
-                    <p id="example" class="example"></p>
+                    <div class="example-container">
+                        <p id="example" class="example"></p>
+                        <button id="speak-example-button" class="speak-button small" aria-label="نطق المثال">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                                <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                            </svg>
+                        </button>
+                    </div>
                     <div class="controls">
                         <button id="know-it" class="btn">أعرفها</button>
                         <button id="dont-know" class="btn btn-outline">لا أعرفها</button>

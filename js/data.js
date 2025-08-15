@@ -190,5 +190,74 @@ const categories = [
             { spanish: 'Quisiera...', translation: 'أريد...', example: 'Quisiera un café' },
             { spanish: 'La cuenta, por favor', translation: 'الحساب من فضلك', example: '¿Me trae la cuenta, por favor؟' }
         ]
+    },
+    {
+        id: 'comida',
+        name: 'الطعام والشراب',
+        words: [
+            { spanish: 'pan', translation: 'خبز', example: 'Pan integral' },
+            { spanish: 'arroz', translation: 'أرز', example: 'Arroz con pollo' },
+            { spanish: 'pollo', translation: 'دجاج', example: 'Pollo asado' },
+            { spanish: 'carne', translation: 'لحم', example: 'Carne de res' },
+            { spanish: 'pescado', translation: 'سمك', example: 'Pescado frito' },
+            { spanish: 'huevo', translation: 'بيضة', example: 'Huevos revueltos' },
+            { spanish: 'leche', translation: 'حليب', example: 'Un vaso de leche' },
+            { spanish: 'queso', translation: 'جبن', example: 'Sándwich de queso' },
+            { spanish: 'manzana', translation: 'تفاحة', example: 'Una manzana al día' },
+            { spanish: 'naranja', translation: 'برتقالة', example: 'Jugo de naranja' },
+            { spanish: 'agua mineral', translation: 'مياه معدنية', example: 'Agua mineral sin gas' },
+            { spanish: 'café', translation: 'قهوة', example: 'Café con leche' },
+            { spanish: 'té', translation: 'شاي', example: 'Té verde' },
+            { spanish: 'azúcar', translation: 'سكر', example: 'Sin azúcar, por favor' },
+            { spanish: 'sal', translation: 'ملح', example: 'Poca sal, por favor' }
+        ]
+    },
+    {
+        id: 'ciudad',
+        name: 'المدينة',
+        words: [
+            { spanish: 'calle', translation: 'شارع', example: 'Vivo en la calle Mayor' },
+            { spanish: 'plaza', translation: 'ساحة', example: 'Plaza de España' },
+            { spanish: 'parque', translation: 'حديقة', example: 'Vamos al parque' },
+            { spanish: 'hotel', translation: 'فندق', example: 'Reservé un hotel' },
+            { spanish: 'banco', translation: 'بنك', example: 'Necesito ir al banco' },
+            { spanish: 'farmacia', translation: 'صيدلية', example: '¿Dónde hay una farmacia?' },
+            { spanish: 'supermercado', translation: 'سوبر ماركت', example: 'Voy al supermercado' },
+            { spanish: 'estación', translation: 'محطة', example: 'Estación de tren' },
+            { spanish: 'aeropuerto', translation: 'مطار', example: '¿Cómo llego al aeropuerto?' },
+            { spanish: 'hospital', translation: 'مستشفى', example: 'Necesito ir al hospital' }
+        ]
+    },
+    {
+        id: 'familia',
+        name: 'العائلة',
+        words: [
+            { spanish: 'padre', translation: 'أب', example: 'Mi padre es médico' },
+            { spanish: 'madre', translation: 'أم', example: 'Mi madre cocina bien' },
+            { spanish: 'hermano/hermana', translation: 'أخ/أخت', example: 'Tengo dos hermanos' },
+            { spanish: 'hijo/hija', translation: 'ابن/ابنة', example: 'Tengo un hijo y una hija' },
+            { spanish: 'abuelo/abuela', translation: 'جد/جدة', example: 'Mis abuelos viven en el campo' },
+            { spanish: 'tío/tía', translation: 'عم/خال/عمة/خالة', example: 'Voy a casa de mi tía' },
+            { spanish: 'primo/prima', translation: 'ابن/ابنة العم/الخال', example: 'Juego con mis primos' },
+            { spanish: 'esposo/esposa', translation: 'زوج/زوجة', example: 'Mi esposa es profesora' },
+            { spanish: 'novio/novia', translation: 'صديق/صديقة', example: 'Mi novio es muy amable' },
+            { spanish: 'suegro/suegra', translation: 'حمو/حماة', example: 'Mis suegros vienen a cenar' }
+        ]
+    },
+    {
+        id: 'trabajo',
+        name: 'العمل والمهنة',
+        words: [
+            { spanish: 'trabajo', translation: 'عمل', example: 'Voy al trabajo' },
+            { spanish: 'oficina', translation: 'مكتب', example: 'Trabajo en una oficina' },
+            { spanish: 'jefe/jefa', translation: 'رئيس/رئيسة', example: 'Mi jefe es muy amable' },
+            { spanish: 'empleado/empleada', translation: 'موظف/موظفة', example: 'Soy empleado de banco' },
+            { spanish: 'reunión', translation: 'اجتماع', example: 'Tengo una reunión a las 3' },
+            { spanish: 'proyecto', translation: 'مشروع', example: 'Estamos en un nuevo proyecto' },
+            { spanish: 'horario', translation: 'جدول زمني', example: 'Mi horario es de 9 a 5' },
+            { spanish: 'sueldo', translation: 'راتب', example: 'Cobro mi sueldo el día 30' },
+            { spanish: 'vacaciones', translation: 'عطلة', example: 'Necesito vacaciones' },
+            { spanish: 'desempleado/a', translation: 'عاطل عن العمل', example: 'Estoy buscando trabajo' }
+        ]
     }
 ];

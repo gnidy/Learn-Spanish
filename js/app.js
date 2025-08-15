@@ -22,7 +22,10 @@ class SpanishVocabApp {
     constructor() {
         this.elements = this.cacheDOM();
         this.state = this.initializeState();
+        this.synth = window.speechSynthesis;
+        this.voices = [];
         this.initialize();
+        this.loadVoices();
     }
 
     /**
@@ -44,7 +47,9 @@ class SpanishVocabApp {
             cardBack: document.querySelector('.card-back'),
             categoriesGrid: document.querySelector('.categories-grid'),
             backButton: document.getElementById('back-button'),
-            wordCounter: document.getElementById('word-counter')
+            wordCounter: document.getElementById('word-counter'),
+            speakButton: document.getElementById('speak-button'),
+            speakExampleButton: document.getElementById('speak-example-button')
         };
     }
 
@@ -67,7 +72,7 @@ class SpanishVocabApp {
             wordScores, // Track scores for spaced repetition
             animationDuration: 300, // ms, should match CSS
             COOLDOWN_DAYS: 2, // Base cooldown for known words
-            REVIEW_THRESHOLD: 3, // Number of successful recalls before word is considered known
+            REVIEW_THRESHOLD: 1, // Number of successful recalls before word is considered known
             currentSessionWords: [] // Track words shown in current session
         };
     }
@@ -103,7 +108,73 @@ class SpanishVocabApp {
     /**
      * Set up event listeners
      */
+    /**
+     * Load available voices for speech synthesis
+     */
+    loadVoices() {
+        this.voices = this.synth.getVoices();
+        
+        // Some browsers require this event to be added to get voices
+        if (this.synth.onvoiceschanged !== undefined) {
+            this.synth.onvoiceschanged = () => {
+                this.voices = this.synth.getVoices();
+            };
+        }
+    }
+
+    /**
+     * Speak the given text in Spanish
+     * @param {string} text - The text to speak
+     */
+    speakText(text) {
+        if (this.synth.speaking) {
+            this.synth.cancel();
+        }
+
+        if (text) {
+            const utterance = new SpeechSynthesisUtterance(text);
+            
+            // Try to find a Spanish voice
+            const spanishVoice = this.voices.find(voice => 
+                voice.lang.startsWith('es') || 
+                voice.name.toLowerCase().includes('spanish')
+            );
+            
+            if (spanishVoice) {
+                utterance.voice = spanishVoice;
+            } else {
+                // Fallback to default voice if no Spanish voice is found
+                utterance.lang = 'es-ES';
+            }
+            
+            utterance.rate = 0.9; // Slightly slower than normal
+            utterance.pitch = 1.0; // Normal pitch
+            
+            this.synth.speak(utterance);
+        }
+    }
+
     setupEventListeners() {
+        // Speak button for word
+        if (this.elements.speakButton) {
+            this.elements.speakButton.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (this.state.currentWord) {
+                    this.speakText(this.state.currentWord.spanish);
+                }
+            });
+        }
+
+        // Speak button for example
+        if (this.elements.speakExampleButton) {
+            this.elements.speakExampleButton.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (this.state.currentWord && this.state.currentWord.example) {
+                    this.speakText(this.state.currentWord.example);
+                }
+            });
+        }
+        
         // Back button
         if (this.elements.backButton) {
             this.elements.backButton.addEventListener('click', () => this.returnToCategories());

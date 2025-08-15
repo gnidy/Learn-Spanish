@@ -188,6 +188,75 @@ header h1 {
 }
 
 /* Content inside the card */
+.word-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 1rem;
+}
+
+.word-card h2 {
+    font-size: 2.2rem;
+    margin: 0;
+    color: var(--primary-color);
+    text-align: center;
+}
+
+.speak-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+    color: var(--primary-color);
+}
+
+.speak-button:hover {
+    background-color: rgba(74, 107, 223, 0.1);
+    transform: scale(1.1);
+}
+
+.speak-button:active {
+    transform: scale(0.95);
+}
+
+.speak-button svg {
+    width: 24px;
+    height: 24px;
+}
+
+/* Example container styles */
+.example-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin: 15px 0;
+    min-height: 24px; /* Ensure consistent height even when empty */
+}
+
+/* Small speaker button for examples */
+.speak-button.small {
+    padding: 6px;
+    align-self: flex-start; /* Align to top of container */
+    margin-top: 3px;
+}
+
+.speak-button.small svg {
+    width: 18px;
+    height: 18px;
+}
+
+/* Hide the example speaker when there's no example text */
+.example:empty + .speak-button.small {
+    display: none;
+}
+
 .word-display h2 {
     font-size: 3rem;
     color: var(--primary-color);
