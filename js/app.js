@@ -180,12 +180,18 @@ function showNotification(message) {
  */
 function markAsKnown() {
     if (!state.currentWord || !state.currentCategory) return;
-    
+
     const wordKey = `${state.currentCategory.id}::${state.currentWord.spanish}`;
     state.knownWords.add(wordKey);
     saveKnownWords();
-    
-    nextWord();
+
+    // If card is flipped, flip it back and wait for animation to finish
+    if (elements.wordCard.classList.contains('card-flipped')) {
+        elements.wordCard.classList.remove('card-flipped');
+        setTimeout(nextWord, 180); // Wait for flip animation
+    } else {
+        nextWord(); // Proceed immediately if not flipped
+    }
 }
 
 /**
@@ -196,12 +202,18 @@ function markAsUnknown() {
         nextWord();
         return;
     }
-    
+
     const wordKey = `${state.currentCategory.id}::${state.currentWord.spanish}`;
     state.knownWords.delete(wordKey);
     saveKnownWords();
-    
-    nextWord();
+
+    // If card is flipped, flip it back and wait for animation to finish
+    if (elements.wordCard.classList.contains('card-flipped')) {
+        elements.wordCard.classList.remove('card-flipped');
+        setTimeout(nextWord, 180); // Wait for flip animation
+    } else {
+        nextWord(); // Proceed immediately if not flipped
+    }
 }
 
 /**
